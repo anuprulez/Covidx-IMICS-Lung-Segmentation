@@ -12,17 +12,19 @@ import numpy as np
 print()
 import matplotlib.pyplot as plt
 from skimage.transform import resize
-from keras.optimizers import Adam
-from keras import backend as K
+import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import backend as K
 from models import actual_unet, simple_unet, N2
 import os
 import cv2
 from statistics import mean, median
 import matplotlib.gridspec as gridspec
-import tensorflow as tf
 import PIL
 from skimage.transform import resize
 from PIL import Image, ImageTk
+
+
 def dice_coef(y_true, y_pred):
 
     tf.cast(y_pred, tf.int32)
@@ -85,26 +87,32 @@ def make_plots(img, segm, segm_pred):
 smooth = 1.
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
+data_path = "/data/users/backup/anup/randgan/create_randgan_datasets/data/"
+test_data = data_path + "test/"
+test_pred = data_path + "test_pred/"
+image_path = data_path + "images/"
+pred_masks = data_path + "predicted_masks/"
+
 
 def predict_mask(n_best=5, n_worst=5):
-    if not os.path.isdir('./images'):
-        os.mkdir('./images')
+    if not os.path.isdir(image_path):
+        os.mkdir(image_path)
         
-    if not os.path.isdir('./predicted_masks'):
-        os.mkdir('./predicted_masks')
+    if not os.path.isdir(pred_masks):
+        os.mkdir(pred_masks)
     img_rows = 256
     img_cols = 256
     model = N2(img_rows, img_cols)
-    model.load_weights('./weights.h5')
+    model.load_weights('weights.h5')
     #model.load_weights('C:/Users/mshri/Desktop/MEAN_SHIFT_DWI/weights.h5')
     model.compile(optimizer=Adam(), loss=dice_coef_loss, metrics=[dice_coef, 'binary_accuracy'])
 
     kernel = np.ones((5,5),np.uint8)
     i = 0
     #print(model.metrics_names)
-    for file in os.listdir('./test'):
+    for file in os.listdir(test_data):
         
-        img = Image.open('./test/' + file).convert('L')
+        img = Image.open(test_data + file).convert('L')
         img = np.asarray(img.resize((256, 256)))
         imgarr = np.array(img) / np.max(img) 
         new_X_test = imgarr.reshape(1,256,256, 1)
@@ -116,7 +124,7 @@ def predict_mask(n_best=5, n_worst=5):
         result = Image.fromarray((y_pred * 255).astype(np.uint8))
         result = result.resize((1024, 1024))
         i += 1
-        result.save('./test_preds/' + file)
+        result.save(test_pred + file)
     print(i)
         
 

@@ -1,11 +1,11 @@
-from keras.models import Model
-from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, Conv2DTranspose
-from keras.layers import  merge, UpSampling2D, Dropout, Cropping2D
-from keras.models import Model
-from keras.models import Sequential
-from keras.layers import Input,concatenate,add,Activation,Conv2DTranspose,Conv2D, Convolution2D,Deconvolution2D, MaxPooling2D, ZeroPadding2D,UpSampling2D, Dropout, BatchNormalization, Flatten, Lambda
-from keras.layers.advanced_activations import ELU, LeakyReLU
-from keras.callbacks import ModelCheckpoint, LearningRateScheduler
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Concatenate, Conv2D, MaxPooling2D, Conv2DTranspose
+from tensorflow.keras.layers import UpSampling2D, Dropout, Cropping2D
+from tensorflow.keras.models import Model
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Input, Concatenate, Add, Activation, Conv2DTranspose, Conv2D, MaxPooling2D, ZeroPadding2D, UpSampling2D, Dropout, BatchNormalization, Flatten, Lambda
+from tensorflow.keras.layers import  LeakyReLU, ELU
+from tensorflow.keras.callbacks import ModelCheckpoint, LearningRateScheduler
 '''def actual_unet(img_rows, img_cols, N = 2):
     """This model is based on:
     https://github.com/jocicmarko/ultrasound-nerve-segmentation
@@ -123,19 +123,19 @@ def actual_unet(img_rows, img_cols, N = 2):
     conv5 = Conv2D(64, (3, 3), activation='relu', padding='same', dilation_rate=3)(pool4)
     conv5 = Conv2D(64, (3, 3), activation='relu', padding='same', dilation_rate=5)(conv5)
 
-    up6 = concatenate([Conv2DTranspose(32,(2, 2), strides=(2, 2), padding='same', dilation_rate=3)(conv5), conv4],axis=3)
+    up6 = Concatenate(axis=3)([Conv2DTranspose(32,(2, 2), strides=(2, 2), padding='same', dilation_rate=3)(conv5), conv4])
     conv6 = Conv2D(32, (3, 3), activation='relu', padding='same', dilation_rate=3)(up6)
     conv6 = Conv2D(32, (3, 3), activation='relu', padding='same', dilation_rate=5)(conv6)
 
-    up7 = concatenate([Conv2DTranspose(16,(2, 2), strides=(2, 2), padding='same', dilation_rate=3)(conv6), conv3],axis=3)
+    up7 = Concatenate(axis=3)([Conv2DTranspose(16,(2, 2), strides=(2, 2), padding='same', dilation_rate=3)(conv6), conv3])
     conv7 = Conv2D(16, (3, 3), activation='relu', padding='same', dilation_rate=3)(up7)
     conv7 = Conv2D(16, (3, 3), activation='relu', padding='same', dilation_rate=5)(conv7)
     
-    up8 = concatenate([Conv2DTranspose(8,(2, 2), strides=(2, 2), padding='same', dilation_rate=3)(conv7), conv2],axis=3)
+    up8 = Concatenate(axis=3)([Conv2DTranspose(8,(2, 2), strides=(2, 2), padding='same', dilation_rate=3)(conv7), conv2])
     conv8 = Conv2D(8, (3, 3), activation='relu', padding='same',  dilation_rate=3)(up8)
     conv8 = Conv2D(8, (3, 3), activation='relu', padding='same', dilation_rate=5)(conv8)
 
-    up9 = concatenate([Conv2DTranspose(4, (2, 2), strides=(2, 2),padding='same', dilation_rate=3)(conv8), conv1],axis=3)
+    up9 = Concatenate(axis=3)([Conv2DTranspose(4, (2, 2), strides=(2, 2),padding='same', dilation_rate=3)(conv8), conv1])
     conv9 = Conv2D(4, (3, 3), activation='relu', padding='same', dilation_rate=3)(up9)
     conv9 = Conv2D(4, (3, 3), activation='relu', padding='same', dilation_rate=5)(conv9)
     
@@ -165,24 +165,21 @@ def simple_unet( img_rows, img_cols, N = 3):
     conv3 = Conv2D(
         2**(N + 2), (3, 3), activation='relu', padding='same', dilation_rate=(2,2))(conv3)
 
-    up1 = concatenate(
+    up1 = Cncatenate(axis=3)(
         [
             Conv2D(2**(N+1), 2, activation = 'relu', padding = 'same')(UpSampling2D(size = (2,2))(conv3)),
             conv2
-        ],
-
-        axis=3)
+        ])
     conv4 = Conv2D(2**(N + 1), (3, 3), activation='relu', padding='same', dilation_rate=(2,2))(up1)
     conv4 = Conv2D(
         2**(N + 1), (3, 3), activation='relu', padding='same', dilation_rate=(2,2))(conv4)
 
 
-    up2 = concatenate(
+    up2 = Concatenate(axis=3)(
         [
          Conv2D(2**(N), 2, activation = 'relu', padding = 'same', dilation_rate=(2,2))(UpSampling2D(size = (2,2))(conv4)),
          conv1
-        ],
-        axis=3)
+        ])
     conv5 = Conv2D(2**(N), (3, 3), activation='relu', padding='same', dilation_rate=(2,2))(up2)
     conv5 = Conv2D(2**(N), (3, 3), activation='relu', padding='same', dilation_rate=(2,2))(conv5)
 
@@ -193,9 +190,13 @@ def simple_unet( img_rows, img_cols, N = 3):
     return model
 
 def _shortcut(_input, residual):
-    stride_width = _input._keras_shape[2] / residual._keras_shape[2]
-    stride_height = _input._keras_shape[3] / residual._keras_shape[3]
-    equal_channels = residual._keras_shape[1] == _input._keras_shape[1]
+    #stride_width = _input._keras_shape[2] / residual._keras_shape[2]
+    #stride_height = _input._keras_shape[3] / residual._keras_shape[3]
+    #equal_channels = residual._keras_shape[1] == _input._keras_shape[1]
+    
+    stride_width = _input.shape[2] / residual.shape[2]
+    stride_height = _input.shape[3] / residual.shape[3]
+    equal_channels = residual.shape[1] == _input.shape[1]
 
     shortcut = _input
     # 1 X 1 conv if shape is different. Else identity.
@@ -204,7 +205,7 @@ def _shortcut(_input, residual):
                                  
                                   
 
-    return add([shortcut, residual])
+    return Add()([shortcut, residual])
 
 
     
@@ -247,7 +248,7 @@ def inception_block(inputs, depth, splitted=True, activation='relu', name=None):
     p4_1 = MaxPooling2D(pool_size=(3,3), strides=(1,1),padding='same')(inputs)
     c4_2 = Conv2D(int(depth/8), (1, 1), padding='same')(p4_1)
     
-    res = concatenate([c1_1, c2_3, c3_3, c4_2],axis=3)
+    res = Concatenate(axis=3)([c1_1, c2_3, c3_3, c4_2])
     res = BatchNormalization(axis=1)(res)
     res=actv()(res)
     return res     
@@ -302,9 +303,9 @@ def N2(img_rows, img_cols):
     after_conv4 = resblock(conv4, 1, 256)   
     
     decon1=Conv2DTranspose(12,(2,2),strides=strides, padding=padding)(conv5)
-    decon1=Convolution2D(256, (1, 1), activation='relu',padding='same')(decon1)  
+    decon1=Conv2D(256, (1, 1), activation='relu',padding='same')(decon1)  
     
-    up6 = concatenate([decon1, after_conv4], axis=3)
+    up6 = Concatenate(axis=3)([decon1, after_conv4])
     
     conv6 = inception_block(up6, 256, splitted=splitted, activation=act, name = 'INCEP_6')
     #conv6=Dropout(conv6)
@@ -312,27 +313,27 @@ def N2(img_rows, img_cols):
     
     after_conv3 = resblock(conv3, 1, 128)
     decon2=Conv2DTranspose(24,(2,2),strides=strides, padding=padding)(conv6)
-    decon2=Convolution2D(128, (1, 1), activation='relu',padding='same')(decon2) 
-    up7 = concatenate([decon2, after_conv3], axis=3)
+    decon2=Conv2D(128, (1, 1), activation='relu',padding='same')(decon2) 
+    up7 = Concatenate(axis=3)([decon2, after_conv3])
     #conv7=Dropout(up7)
     conv7 = inception_block(up7, 128, splitted=splitted, activation=act)
    
     
     after_conv2 = resblock(conv2, 1, 64)
     decon3=Conv2DTranspose(48,(2,2),strides=strides, padding=padding)(conv7)
-    decon3=Convolution2D(64, (1, 1), activation='relu',padding='same')(decon3) 
-    up8 = concatenate([decon3, after_conv2], axis=3)
+    decon3=Conv2D(64, (1, 1), activation='relu',padding='same')(decon3) 
+    up8 = Concatenate(axis=3)([decon3, after_conv2])
     #conv8=Dropout(up8)
     conv8 = inception_block(up8, 64, splitted=splitted, activation=act)
    
     after_conv1 = resblock(conv1, 1, 32)
     decon4=Conv2DTranspose(96,(2,2),strides=strides, padding=padding)(conv8)
-    decon4=Convolution2D(32, (1, 1), activation='relu',padding='same')(decon4) 
-    up9 = concatenate([decon4, after_conv1], axis=3)
+    decon4=Conv2D(32, (1, 1), activation='relu',padding='same')(decon4) 
+    up9 = Concatenate(axis=3)([decon4, after_conv1])
     #conv9=Dropout(up9)
     conv9 = inception_block(up9, 32, splitted=splitted, activation=act, name = 'INCEP_7')
     
-    conv10 = Convolution2D(1, (1, 1), activation='sigmoid',name='main_output')(conv9)
+    conv10 = Conv2D(1, (1, 1), activation='sigmoid',name='main_output')(conv9)
     model = Model(inputs=[inputs], outputs=[conv10])
     return model
     
