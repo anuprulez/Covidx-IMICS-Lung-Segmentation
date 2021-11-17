@@ -88,8 +88,8 @@ smooth = 1.
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
 data_path = "/data/users/backup/anup/randgan/create_randgan_datasets/data/"
-test_data = data_path + "test/"
-test_pred = data_path + "test_pred/"
+train_data = data_path + "train/"
+train_pred = data_path + "train_pred/"
 image_path = data_path + "images/"
 pred_masks = data_path + "predicted_masks/"
 
@@ -110,9 +110,9 @@ def predict_mask(n_best=5, n_worst=5):
     kernel = np.ones((5,5),np.uint8)
     i = 0
     #print(model.metrics_names)
-    for file in os.listdir(test_data):
+    for file in os.listdir(train_data):
         
-        img = Image.open(test_data + file).convert('L')
+        img = Image.open(train_data + file).convert('L')
         img = np.asarray(img.resize((256, 256)))
         imgarr = np.array(img) / np.max(img) 
         new_X_test = imgarr.reshape(1,256,256, 1)
@@ -124,10 +124,11 @@ def predict_mask(n_best=5, n_worst=5):
         result = Image.fromarray((y_pred * 255).astype(np.uint8))
         result = result.resize((1024, 1024))
         i += 1
-        result.save(test_pred + file)
-    print(i)
+        result.save(train_pred + file)
+        print("Segmented image: {}".format(str(i)))
         
 
 
 if __name__=='__main__':
-    predict_mask( )
+    with tf.device('/device:cpu:0'):
+        predict_mask()
